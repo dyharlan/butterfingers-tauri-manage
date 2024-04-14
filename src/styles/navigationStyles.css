@@ -1,0 +1,159 @@
+body {
+    margin: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back {
+    position: relative;
+}
+
+.left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: hsla(var(--secondary), 0.5);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.side-logo {
+    width: 400px;
+    height: 200px;
+    object-fit: cover;
+}
+
+.logout-btn {
+    width: 100%;
+    background-color: hsla(var(--primary));
+    border: 2px solid hsl(var(--primary));
+    color: hsl(var(--background));
+    padding: 0.5em 2em;
+    border-radius: 0.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.logout-btn:hover {
+    transform: translate(0, -3px);
+    box-shadow: 0 20px 80px -10px hsl(var(--primary));
+    cursor: pointer;
+}
+
+.logout-btn:disabled {
+    pointer-events: none;
+}
+
+.logout-btn:active {
+    box-shadow: none;
+    transform: translateY(0);
+}
+
+.right-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    min-width: 30%;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: hsl(var(--text));
+
+}
+
+.nav-link:visited {
+    color: hsl(var(--text));
+}
+
+.item {
+    width: 60%;
+    padding: 8px;
+    border-radius: 8px;
+    transition: transform ease 0.3s, box-shadow ease 0.3s;
+}
+
+.item:hover {
+    transform: translate(0, -1px);
+    box-shadow: 0 20px 30px -10px hsl(var(--secondary));
+}
+
+.nav-text {
+    font-size: var(--size-h5);
+    font-weight: 800;
+    margin: 0;
+}
+
+.nav-icon {
+    max-width: 250px;
+    aspect-ratio: 1 / 1;
+}
+
+
+.line {
+    border: 1px solid hsla(var(--secondary), 0.2);
+    width: 80%;
+}
+
+@media only screen and (max-width: 1000px) {
+
+    .logout-btn {
+        position: absolute;
+        max-width: 160px;
+        top: 20px;
+        right: 20px;
+    }
+
+    .left {
+        background-color: hsl(var(--background));
+    }
+
+    .nav-icon {
+        max-width: 50%;
+        min-width: 150px;
+    }
+
+    .nav-text {
+        font-size: var(--size-h6);
+    }
+
+    .back {
+        position: unset;
+    }
+
+    .backButton {
+        position: absolute;
+    }
+}
+
+@media only screen and (max-height: 900px) {
+    .nav-icon {
+        max-height: 50%;
+        min-height: 150px;
+    }
+
+    .nav-text {
+        font-size: var(--size-h6);
+    }
+
+}
+
+@media only screen and (max-width: 500px) {
+    .side-logo {
+        width: 300px;
+        height: 200px;
+        object-fit: cover;
+    }
+}

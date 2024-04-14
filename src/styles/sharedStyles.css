@@ -1,0 +1,79 @@
+:root {
+    /* COLORS */
+    --text-hex: #10130f;
+    --background-hex: #f8f9f8;
+    --primary-hex: #50c047;
+    --secondary-hex: #aeb9be;
+    --accent-hex: #9396a8;
+
+    --error-hex: #ff0000;
+
+    /* hsl format */
+    --text: 105, 12%, 7%;
+    --background: 120, 8%, 97%;
+    --primary: 116, 49%, 52%;
+    --secondary: 199, 11%, 71%;
+    --accent: 231, 11%, 62%;
+
+
+    --error: 0, 100%, 50%;
+
+    /* SIZES */
+    --size-h1: 5.61rem;
+    --size-h2: 4.20rem;
+    --size-h3: 3.15rem;
+    --size-h4: 2.36rem;
+    --size-h5: 1.77rem;
+    --size-h6: 1.33rem;
+    --norm: 1rem;
+    --small: 0.75rem;
+}
+
+/* FOR DARK MODE (to implement)
+:root[data-theme="dark"] {
+  --text: #ecefeb;
+  --background: #070807;
+  --primary: #46b63e;
+  --secondary: #424d52;
+  --accent: #56596c;
+}
+*/
+
+* {
+    font-size: 16px;
+}
+
+html,
+body {
+    font-family: 'poppins', sans-serif;
+    font-size: var(--norm);
+    background-color: hsl(var(--background));
+    color: hsl(var(--text));
+}
+
+.backButton {
+    position: absolute;
+    max-width: 38px;
+    top: 20px;
+    left: 20px;
+}
+
+.logo {
+    width: 400px;
+    height: 200px;
+    object-fit: cover;
+}
+
+.error {
+    color: hsl(var(--error))
+}
+
+@media only screen and (max-height: 800px) {
+    header {
+        margin: 0;
+    }
+
+    .logo {
+        width: 300px;
+    }
+}
