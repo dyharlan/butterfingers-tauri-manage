@@ -1,10 +1,10 @@
-const { invoke } = window.__TAURI__.tauri;
-import Database from "tauri-plugin-sql-api";
-
+//const { invoke } = window.__TAURI__.tauri;
+//import Database from "tauri-plugin-sql-api";
+import { invoke } from '@tauri-apps/api'
 // mysql
-const db = await Database.load("mysql://root:toorenia@192.168.100.23/pyfi_db");
+//const db = await Database.load("mysql://root:toorenia@192.168.100.23/pyfi_db");
 
-const result = await db.execute("call enumerate_unenrolled_employees()");
+//const result = await db.execute("call enumerate_unenrolled_employees()");
 window.addEventListener("DOMContentLoaded", () => {
   let queryString = window.location.search;
   console.log(queryString);

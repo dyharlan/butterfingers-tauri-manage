@@ -10,6 +10,7 @@
     "@tauri-apps/cli": "^1"
   },
   "dependencies": {
+    "@tauri-apps/api": "^1.5.3",
     "tauri-plugin-sql-api": "github:tauri-apps/tauri-plugin-sql#v1"
   }
 }
