@@ -2,30 +2,45 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" type="text/css" href="/styles/sharedStyles.css" />
-    <link rel="stylesheet" type="text/css" href="/styles/navigationStyles.css" />
+    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fingerprint Management</title>
+    <title>Tauri App</title>
+    <script type="module" src="/main.js" defer></script>
+    <style>
+      .logo.vanilla:hover {
+        filter: drop-shadow(0 0 2em #ffe21c);
+      }
+    </style>
   </head>
 
   <body>
-      <header>
-        <img class="side-logo" src="/assets/PaoYingLogo.png" alt="Pao Ying Food Inc. Logo">
-      </header>
+    <div class="container">
+      <h1>Welcome to Tauri!</h1>
 
-        <div class="right-items">
-            <a class="nav-link item" href="/finger-management.html">
-                    <img class="nav-icon" src="/assets/finger-manage.svg" alt="Fingerprint Management Icon">
-                    <p class="nav-text">Manage Fingerprints</p>
-                    <p class="nav-subtext">view and delete enrolled fingerprints</p>
-            </a>
-            <div class="line"></div>
-            <a class="nav-link item" href="/finger-management.html">
-                    <img class="nav-icon" src="/assets/finger-enroll.svg" alt="Fingerprint Enrollment Icon">
-                    <p class="nav-text">Enroll Fingerprint</p>
-                    <p class="nav-subtext">enroll a new fingerprint into the system</p>
-            </a>
-        </div>
+      <div class="row">
+        <a href="https://tauri.app" target="_blank">
+          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
+        </a>
+        <a
+          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+          target="_blank"
+        >
+          <img
+            src="/assets/javascript.svg"
+            class="logo vanilla"
+            alt="JavaScript logo"
+          />
+        </a>
+      </div>
+	<a href="/selectEmpToEnroll.html?param=1">go here</a>
+      <p>Click on the Tauri logo to learn more about the framework</p>
+
+      <form class="row" id="greet-form">
+        <input id="greet-input" placeholder="Enter a name..." />
+        <button type="submit">Greet</button>
+      </form>
+
+      <p id="greet-msg"></p>
     </div>
   </body>
 </html>
