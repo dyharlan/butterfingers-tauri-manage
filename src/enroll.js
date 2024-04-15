@@ -12,7 +12,6 @@ window.addEventListener("DOMContentLoaded", () => {
 	};
 	enumerate_unenrolled_employees();
 });
-
 async function enumerate_unenrolled_employees() {
 	//await invoke('count');
 	let results = await invoke('enumerate_unenrolled_employees');
@@ -37,6 +36,7 @@ async function enumerate_unenrolled_employees() {
 			addToList(emp['emp_id'], emp['fname'], emp['lname']);
 		}
 	}
+
 }
 
 function addToList(id, fname, lname) {

@@ -17,6 +17,7 @@ use tauri::Window as TauriWindow;
 use libfprint_rs::{
   FpPrint, 
   FpDevice,
+  FpContext,
 };
     
 use sqlx::{
@@ -24,6 +25,8 @@ use sqlx::{
   Row,
 };
 use uuid::Uuid;
+use tauri::State;
+
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -52,6 +55,7 @@ async fn enumerate_unenrolled_employees() -> String {
    	let json = row.get::<serde_json::Value, usize>(0);
    	unenrolled = json.to_string();
    }
+   pool.close().await;
    return unenrolled;        
 }
 
@@ -68,9 +72,18 @@ fn count(window: tauri::Window) {
   });
   
 }
+
+#[tauri::command]
+fn get_device_enroll_stages(device: State<Note>) -> i32 {
+  return device.0.lock().unwrap().nr_enroll_stage();
+}
+
+struct Note(Mutex<FpDevice>);
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet,enumerate_unenrolled_employees,count])
+        .manage(Note(Mutex::new(FpContext::new().devices().remove(0))))
+        .invoke_handler(tauri::generate_handler![greet,enumerate_unenrolled_employees,count,get_device_enroll_stages])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
