@@ -10,6 +10,14 @@
   },
   "tauri": {
     "allowlist": {
+      "dialog": {
+        "all": false,
+        "ask": false,
+        "confirm": true,
+        "message": false,
+        "open": false,
+        "save": false
+      },
       "all": false,
       "shell": {
         "all": false,
@@ -20,7 +28,8 @@
       {
         "title": "butterfingers-tauri-manage",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "maximized": true
       }
     ],
     "security": {

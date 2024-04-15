@@ -3,6 +3,7 @@
 
 <head>
     <link rel="stylesheet" type="text/css" href="/styles/empToEnrollStyles.css">
+    <link rel="stylesheet" type="text/css" href="/styles/sharedStyles.css">
     <link href="https://fonts.googleapis.com/css?family=Poppins:600&display=swap" rel="stylesheet">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,22 +12,18 @@
 </head>
 
 <body>
-    <div class="header">
-        
-        <!--<button><i class="fa fa-arrow-left"></i></button>-->
-        <a href="/index.html">Go back</a>
-        <picture id="PaoYingLogo">
-            <img style="width:auto;" src="/assets/icons-images/PaoYingLogo.png" height="200px">
-        </picture>
-    </div>
+    <header>
+        <a id="back" href="/index.html">
+            <img class="backButton" src="/assets/icons-images/back.svg"  alt="Back Button Icon">
+        </a>
+        <img class="logo" src="/assets/icons-images/PaoYingLogo.png">
+    </header>
     <div class="title">
         <h2>Select Employee To Enroll Fingerprint</h2>
-        <p id="tubol">Wow</p>
     </div>
     <div class="content">
-        <div class="employee-Table">
-            
-        </div>
+        <input aria-label="Search Bar" type="text" placeholder="Search Name or ID" id="search" onkeyup="searchEmp()">
+        <ul class="item-list" id="item-list"></ul>
     </div>
 </body>
 

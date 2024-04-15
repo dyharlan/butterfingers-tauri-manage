@@ -1,68 +1,67 @@
-body { 
+body {
     font-family: 'poppins', sans-serif;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
+header {
+    width: 100%;
     text-align: center;
+    display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.header button {
-    position: relative;
-    left: -20%;
-    transform: translate(-50%, -40%);
-
-}
-  
-.header button {
-   height: 30px;
-   width: 30px;
-   border: none;
-   border-radius: 100px;
-   background-color: #a9bf58;
-}
-
-picture img {
-    height: 300px;
-    position: relative;
-    top: -70px;
-}
-
-.content {
-    display: flex; 
-}
-
-.content > div {
-    position: relative;
-    width: 500px;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -40%);
 }
 
 .title {
-    position: relative;
-    top: -150px;
-    padding-bottom: 50px;
     text-align: center;
+}
+
+h2 {
+    font-size: var(--size-h4);
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
 
-table {
-    position: relative;
-    top: -150px;
-    border-collapse: collapse;
-    width: 100%;
-    margin: 10px;
+#search {
+    display: block;
+    width: 30%;
+    height: 50px;
+    min-width: 250px;
+    padding: 10px;
+    font-size: var(--size-h6);
+    border: 2px solid hsl(var(--accent));
+    border-radius: 4px;
+    box-sizing: border-box;
 }
-  
-th, td {
-    padding: 10px; 
-    border: 1px solid black;
-    text-align: center;
+
+.item-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 30%;
+    padding: 0;
+    border: 2px solid hsl(var(--secondary));
+    border-radius: 8px;
+    max-height: 350px;
+    overflow: auto;
+}
+
+.item {
+    display: flex;
+    gap: 18px;
+    align-items: center;
     justify-content: center;
+    padding: 8px;
+    border-radius: 8px;
+    border: 2px solid hsl(var(--background));
+    transition: transform ease 0.3s, box-shadow ease 0.3s, border ease 0.3s;
+}
+
+.item:hover {
+    transform: translate(0, -1px);
+    box-shadow: 0 20px 30px -10px hsl(var(--secondary));
+    border: 2px solid hsl(var(--secondary));
 }
