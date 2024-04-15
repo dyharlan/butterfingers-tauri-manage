@@ -8,6 +8,7 @@ use std::{
   thread,
   time,
 };
+
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
@@ -28,10 +29,7 @@ use sqlx::{
 use uuid::Uuid;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+
 #[derive(Serialize, Deserialize)]
 struct Employee {
   emp_id: u64,
@@ -40,27 +38,61 @@ struct Employee {
 }
 #[tauri::command]
 async fn enumerate_unenrolled_employees() -> String {
-  dotenvy::dotenv().unwrap();
-  let pool = MySqlPool::connect(&env::var("DATABASE_URL").unwrap()).await.unwrap(); 
-  let result = sqlx::query!("CALL enumerate_unenrolled_employees_json")
+  //dotenvy::dotenv().unwrap();
+
+  match dotenvy::dotenv() {
+    Ok(_) => (),
+    Err(e) => return json!({
+      "error" : format!("Could not read .env file: {}",e.to_string())
+    }).to_string(),
+  }
+
+
+  let database_url = match env::var("DATABASE_URL") {
+    Ok(url) => url,
+    Err(_) => return json!({ 
+      "error": "DATABASE_URL not set"
+    }).to_string(),
+  };
+
+  let pool = match MySqlPool::connect(&database_url).await {
+    Ok(pool) => pool,
+    Err(e) => return json!({ 
+      "error": format!("Could not connect to database: {}",e)
+    }).to_string(),
+  };
+  
+  let result = match sqlx::query!("CALL enumerate_unenrolled_employees_json")
   .fetch_all(&pool)
-  .await.unwrap();
+  .await{
+    Ok(result) => result,
+    Err(_) => return json!({
+      "error" : "Failed to execute query"
+    }).to_string(),
+  };
+
+  pool.close().await;
   
    if result.is_empty() {
       println!("No unenrolled employees found");
-      return String::from("{\"error\":\"No unenrolled employees found\"}");
+      return json!({
+        "error" : "No unenrolled employees found"
+      }).to_string();
    }
+
    let mut unenrolled: String = String::from("");
-   for (_,row) in result.iter().enumerate() {
-   	let json = row.get::<serde_json::Value, usize>(0);
-   	unenrolled = json.to_string();
-   }
-   pool.close().await;
-   return unenrolled;        
+
+  for (_,row) in result.iter().enumerate() {
+   	  let json = row.get::<serde_json::Value, usize>(0);
+   	  unenrolled = json.to_string();
+  }
+  
+  return unenrolled;        
 }
 
 #[tauri::command]
-fn enroll_proc(emp: String,device: State<Note>) -> String {
+fn enroll_proc(emp: String, device: State<Note>) -> String {
+  
   let emp_num = match emp.trim().parse::<u64>() {
     Ok(num) => num,
     Err(_) => return json!({
@@ -68,55 +100,188 @@ fn enroll_proc(emp: String,device: State<Note>) -> String {
         "body" : "Invalid employee ID",
     }).to_string(),
   };
-  let pool = futures::executor::block_on(async {
-    MySqlPool::connect(&env::var("DATABASE_URL").unwrap()).await;
-  });
+
+  match dotenvy::dotenv() {
+    Ok(_) => (),
+    Err(e) => return json!({
+      "error" : format!("Could not read .env file: {}",e.to_string())
+    }).to_string(),
+  }
+
+
+  let database_url = match env::var("DATABASE_URL") {
+    Ok(url) => url,
+    Err(_) => return json!({ 
+      "error": "DATABASE_URL not set"
+    }).to_string(),
+  };
+
+  let pool = match futures::executor::block_on(async {
+    MySqlPool::connect(&database_url).await
+  }) {
+    Ok(pool) => pool,
+    Err(e) => return json!({
+      "error" : format!("Could not connect to database: {}",e)
+    }).to_string(),
+  };
+
+
   /*
   * Get emp_id and check if it already is enrolled.
   */
-  let fp_scanner = device.0.lock().unwrap();
+
+  let result = match futures::executor::block_on(async {
+    sqlx::query!("SELECT COUNT(*) AS count_result FROM ENROLLED_FINGERPRINTS WHERE EMP_ID = ?", emp_num)
+    .fetch_one(&pool)
+    .await
+   }) {
+    Ok(result) => result,
+    Err(_) => return json!({
+      "error" : "Failed to execute query"
+    }).to_string(),
+  };
+
+
+  if result.count_result == 1 {
+    return json!({
+      "responsecode" : "failure",
+      "body" : "Employee already enrolled",
+    }).to_string();
+  }
+
+  let fp_scanner = match device.0.lock() {
+    Ok(fp_scanner) => fp_scanner,
+    Err(_) => {
+        return json!({
+        "responsecode" : "failure",
+        "body" : "Could not get device",
+      }).to_string()
+    },
+  };
+
   //open the fingerprint scanner
-  fp_scanner.open_sync(None).expect("Device could not be opened");
+  match fp_scanner.open_sync(None) {
+    Ok(_) => (),
+    Err(_) => {
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not open device",
+      }).to_string()
+    }
+  }
     
   //create a template for the user
   let template = FpPrint::new(&fp_scanner);
-  //set the username of the template to the uuid generated
+
+  
   //generates a random uuid
   let uuid = Uuid::new_v4();
+
+  //set the username of the template to the uuid generated
   template.set_username(&uuid.to_string()); 
+
   println!("Username of the fingerprint: {}", template.username().expect("Username should be included here"));
+
   let counter = Arc::new(Mutex::new(0));
-  let new_fprint = fp_scanner
-  .enroll_sync(template, None, Some(enroll_cb), None)
-  .expect("Fingerprint could not be enrolled");
+
+  let new_fprint = match fp_scanner.enroll_sync(template, None, Some(enroll_cb), None) {
+    Ok(new_fprint) => new_fprint,
+    Err(_) => {
+      fp_scanner.close_sync(None).expect("Could not close fingerprint scanner");
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not enroll fingerprint",
+      }).to_string();
+    }
+  };
+
   //close the fingerprint scanner
-  fp_scanner.close_sync(None).expect("Device could not be closed");
+  match fp_scanner.close_sync(None) {
+    Ok(_) => (),
+    Err(_) => {
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not close fingerprint scanner",
+      }).to_string();
+    }
+  } //.expect("Device could not be closed");
+
   println!("Total enroll stages: {}", counter.lock().unwrap());
+
+  let home_dir = match dirs::home_dir() {
+    Some(home_dir) => home_dir,
+    None => {
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not get home directory to store fingerprint",
+      }).to_string()
+    }
+  };
+
   //create a file to store the fingerprint in (at the root folder, which is securely located in the home directory)
-  let mut file = OpenOptions::new()
-  .write(true)
-  .create(true)
-  .open(dirs::home_dir()
-    .expect("Failed to get home directory")
-    .join(format!("print/fprint_{}",uuid)))
-    .expect("Creation of file failed");
+  let mut file = match OpenOptions::new()
+    .write(true)
+    .create(true)
+    .open(home_dir
+      .join(format!("print/fprint_{}",uuid))) {
+        Ok(file) => file,
+        Err(_) => {
+          return json!({
+            "responsecode" : "failure",
+            "body" : "Could not create fingerprint file",
+          }).to_string();
+        }
+      };
+    //.expect("Creation of file failed");
+  
+  //serialize the fingerprint
+  let new_fprint = match new_fprint.serialize() {
+    Ok(new_fprint) => new_fprint.to_owned(),
+    Err(_) => {
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not serialize fingerprint",
+      }).to_string();
+    }
+  };
+  
 
   //fingerprint serialized for storage at the file location
-  file.write_all(&new_fprint.serialize().expect("Could not serialize fingerprint"))
-  .expect("Error: Could not store fingerprint to the txt file");
-  let insert =futures::executor::block_on(async {
-    sqlx::query!("CALL save_fprint_identifier(?,?)",emp_num,uuid.to_string())
-      .execute(&pool) //execute the stored prodcedure
-      .await; //wait for the query to finish
-    match insert.rows_affected() { //check how many rows were affected by the stored procedure that was previously queried
-      0 => println!("No rows affected"),
-      _ => println!("Rows affected: {}", insert.rows_affected()),
+  match file.write_all(&new_fprint) {
+    Ok(_) => (),
+    Err(_) => {
+      return json!({
+        "responsecode" : "failure",
+        "body" : "Could not write fingerprint to file",
+      }).to_string();
     }
-    pool.close().await; //close the connection to the database
-  });
+  }
   
-        
-  Ok(()) //return the function with no errors
+
+  return futures::executor::block_on(async {
+    match sqlx::query!("CALL save_fprint_identifier(?,?)",emp_num,uuid.to_string())
+      .execute(&pool)
+      .await {
+        Ok(insert) => {
+          pool.close().await; //close the connection to the database
+          match insert.rows_affected() { //check how many rows were affected by the stored procedure that was previously queried
+            0 => println!("No rows affected"),
+            _ => println!("Rows affected: {}", insert.rows_affected()),
+          }
+          json!({
+            "responsecode" : "success",
+            "body" : "Successfully enrolled fingerprint",
+          }).to_string()
+        },
+        Err(_) => {
+          pool.close().await; //close the connection to the database
+          json!({
+            "responsecode" : "failure",
+            "body" : "Could not execute stored procedure: save_fprint_identifier",
+          }).to_string()
+        }
+      }
+  })
 }
 
 pub fn enroll_cb(
@@ -140,7 +305,7 @@ struct Note(Mutex<FpDevice>);
 fn main() {
     tauri::Builder::default()
         .manage(Note(Mutex::new(FpContext::new().devices().remove(0))))
-        .invoke_handler(tauri::generate_handler![greet,enumerate_unenrolled_employees,count,get_device_enroll_stages])
+        .invoke_handler(tauri::generate_handler![enumerate_unenrolled_employees,enroll_proc,get_device_enroll_stages])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
