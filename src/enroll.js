@@ -68,7 +68,8 @@ async function selectEmp(id, fname, lname) {
 		{ title: "Confirm Selected Employee", okLabel: "Yes", });
 
 	if (confirmed) {
-		window.location.replace("/enrollProcess.html?id=" + id);
+		window.location.href = "/enrollProcess.html?id=" + id;
+		//window.location.replace("/enrollProcess.html?id=" + id);
 	}
 }
 

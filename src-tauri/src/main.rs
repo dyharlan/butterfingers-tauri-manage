@@ -24,6 +24,8 @@ use libfprint_rs::{
     
 use sqlx::{
   MySqlPool,
+  mysql::MySqlRow,
+  mysql::MySqlQueryResult,
   Row,
 };
 use uuid::Uuid;
@@ -101,53 +103,19 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
     }).to_string(),
   };
 
-  match dotenvy::dotenv() {
-    Ok(_) => (),
-    Err(e) => return json!({
-      "error" : format!("Could not read .env file: {}",e.to_string())
-    }).to_string(),
-  }
-
-
-  let database_url = match env::var("DATABASE_URL") {
-    Ok(url) => url,
-    Err(_) => return json!({ 
-      "error": "DATABASE_URL not set"
-    }).to_string(),
-  };
-
-  let pool = match futures::executor::block_on(async {
-    MySqlPool::connect(&database_url).await
-  }) {
-    Ok(pool) => pool,
-    Err(e) => return json!({
-      "error" : format!("Could not connect to database: {}",e)
-    }).to_string(),
-  };
-
-
   /*
   * Get emp_id and check if it already is enrolled.
   */
 
   let result = match futures::executor::block_on(async {
-    sqlx::query!("SELECT COUNT(*) AS count_result FROM ENROLLED_FINGERPRINTS WHERE EMP_ID = ?", emp_num)
-    .fetch_one(&pool)
-    .await
-   }) {
+    query_count(emp_num).await
+  }) {
     Ok(result) => result,
-    Err(_) => return json!({
-      "error" : "Failed to execute query"
-    }).to_string(),
-  };
-
-
-  if result.count_result == 1 {
-    return json!({
+    Err(e) => return json!({
       "responsecode" : "failure",
-      "body" : "Employee already enrolled",
-    }).to_string();
-  }
+      "body" : format!("Failed to execute query: {}",e),
+    }).to_string()
+  };
 
   let fp_scanner = match device.0.lock() {
     Ok(fp_scanner) => fp_scanner,
@@ -194,6 +162,8 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
       }).to_string();
     }
   };
+
+  println!("Fingerprint has been scanned");
 
   //close the fingerprint scanner
   match fp_scanner.close_sync(None) {
@@ -259,29 +229,95 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
   
 
   return futures::executor::block_on(async {
-    match sqlx::query!("CALL save_fprint_identifier(?,?)",emp_num,uuid.to_string())
+    match save_fprint_identifier(&emp_num, &uuid.to_string()).await { 
+      Ok(insert) => {
+        println!("Fingerprint has been saved in the database");
+        json!({
+          "responsecode" : "success",
+          "body" : "Successfully enrolled fingerprint",
+        }).to_string()
+      },
+      Err(result) => {
+        json!({
+          "responsecode" : "failure",
+          "body" : result.to_string(),
+        }).to_string()
+      }
+    }
+  })
+}
+
+async fn query_count(emp_id: u64) -> Result<(), String> {
+  match dotenvy::dotenv() {
+    Ok(_) => (),
+    Err(e) => return Err(e.to_string()),
+  }
+
+  let database_url = match env::var("DATABASE_URL") {
+    Ok(url) => url,
+    Err(e) => return Err(e.to_string()),
+  };
+
+  let pool = match MySqlPool::connect(&database_url).await {
+    Ok(pool) => pool,
+    Err(e) => return Err(e.to_string()),
+  };
+
+  let record = match sqlx::query!("SELECT COUNT(*) AS count_result FROM ENROLLED_FINGERPRINTS WHERE EMP_ID = ?", emp_id)
+    .fetch_one(&pool)
+    .await {
+      Ok(result) => {
+        if result.count_result == 1 {
+          pool.close().await;
+          return Err(json!({
+            "responsecode" : "failure",
+            "body" : "Employee already enrolled",
+          }).to_string());
+        }
+      },
+      Err(e) => return Err(e.to_string()),
+    };
+
+  pool.close().await; //close connection to database
+  Ok(())
+}
+
+async fn save_fprint_identifier(emp_id: &u64, fprint_uuid: &str) -> Result<(), String> {
+
+  match dotenvy::dotenv() {
+      Ok(_) => (),
+      Err(e) => return Err(format!("Failed to load .env file: {}", e)),
+  }
+
+
+  let database_url = match env::var("DATABASE_URL") {
+      Ok(url) => url,
+      Err(_) => return Err("DATABASE_URL not set".to_string()),
+  };
+
+  //connect to the database
+  let pool = match MySqlPool::connect(&database_url).await {
+      Ok(pool) => pool,
+      Err(e) => return Err(e.to_string()),
+  };
+
+  //query the record_attendance_by_empid stored procedure (manual attendance)
+  let row = match sqlx::query!("CALL save_fprint_identifier(?,?)",emp_id,fprint_uuid.to_string())
       .execute(&pool)
       .await {
-        Ok(insert) => {
-          pool.close().await; //close the connection to the database
-          match insert.rows_affected() { //check how many rows were affected by the stored procedure that was previously queried
-            0 => println!("No rows affected"),
-            _ => println!("Rows affected: {}", insert.rows_affected()),
-          }
-          json!({
-            "responsecode" : "success",
-            "body" : "Successfully enrolled fingerprint",
-          }).to_string()
-        },
-        Err(_) => {
-          pool.close().await; //close the connection to the database
-          json!({
-            "responsecode" : "failure",
-            "body" : "Could not execute stored procedure: save_fprint_identifier",
-          }).to_string()
-        }
-      }
-  })
+          Ok(row) => {
+            pool.close().await;
+            match row.rows_affected() { //check how many rows were affected by the stored procedure that was previously queried
+              0 => println!("No rows affected"),
+              _ => println!("Rows affected: {}", row.rows_affected()),
+            }
+          },
+          Err(e) => return Err(e.to_string()),
+      };
+      //.expect("Could not retrieve latest attendance record");
+
+  pool.close().await; //close connection to database
+  Ok(row) //return from the function with no errors
 }
 
 pub fn enroll_cb(
@@ -302,8 +338,10 @@ fn get_device_enroll_stages(device: State<Note>) -> i32 {
 
 struct Note(Mutex<FpDevice>);
 
-fn main() {
+#[tokio::main]
+async fn main() {
     tauri::Builder::default()
+        .setup(|app| {Ok(())})
         .manage(Note(Mutex::new(FpContext::new().devices().remove(0))))
         .invoke_handler(tauri::generate_handler![enumerate_unenrolled_employees,enroll_proc,get_device_enroll_stages])
         .run(tauri::generate_context!())

@@ -9,13 +9,17 @@ window.addEventListener("DOMContentLoaded", () => {
 	console.log(id);
     if(id == null){ //check if id exists
         //show error
+        document.getElementById("proc-num").innerHTML = "no id";
     } else {
-        let stages = get_enroll_stages(); //how many enroll stages will the scanner perform
+        get_enroll_stages(id); //how many enroll stages will the scanner perform
         //print "Please press your finger (stages) times making sure it blinks each time."
         //return if success
+        //invoke('');
     }
 });
 
-async function get_enroll_stages(){
-    return await invoke('get_device_enroll_stages');
+async function get_enroll_stages(id) {
+    let stages = await invoke('get_device_enroll_stages');
+    document.getElementById("proc-num").innerHTML = "Please press your finger " + stages + " times making sure it blinks each time.";
+    let result = await invoke('enroll_proc', {emp:id});
 }
