@@ -27,8 +27,8 @@ async function get_enroll_stages(id, empname) {
     const result = JSON.parse(response);
 
     if (result && result.responsecode === "success") {
-        document.getElementsByClassName('process').style.display = "none";
-        document.getElementsByClassName('success').style.display = "flex";
+        document.getElementsByClassName('process')[0].style.display = "none";
+        document.getElementsByClassName('success')[0].style.display = "flex";
         let fempname = empname.replace('-', ' ');
         document.getElementById("succ-id").innerHTML = "For Employee: " + fempname + " ID: " + id;
     } else {
