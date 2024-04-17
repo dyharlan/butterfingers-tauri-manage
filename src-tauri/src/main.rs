@@ -40,20 +40,11 @@ struct Employee {
 }
 #[tauri::command]
 async fn enumerate_unenrolled_employees() -> String {
-  //dotenvy::dotenv().unwrap();
 
-  match dotenvy::dotenv() {
-    Ok(_) => (),
-    Err(e) => return json!({
-      "error" : format!("Could not read .env file: {}",e.to_string())
-    }).to_string(),
-  }
-
-
-  let database_url = match env::var("DATABASE_URL") {
+  let database_url = match db_url() {
     Ok(url) => url,
-    Err(_) => return json!({ 
-      "error": "DATABASE_URL not set"
+    Err(e) => return json!({
+      "error": format!("DATABASE_URL not set: {}", e)
     }).to_string(),
   };
 
@@ -248,14 +239,10 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
 }
 
 async fn query_count(emp_id: u64) -> Result<(), String> {
-  match dotenvy::dotenv() {
-    Ok(_) => (),
-    Err(e) => return Err(e.to_string()),
-  }
 
-  let database_url = match env::var("DATABASE_URL") {
+  let database_url = match db_url() {
     Ok(url) => url,
-    Err(e) => return Err(e.to_string()),
+    Err(e) => return Err(format!("DATABASE_URL not set: {}", e)),
   };
 
   let pool = match MySqlPool::connect(&database_url).await {
@@ -284,15 +271,9 @@ async fn query_count(emp_id: u64) -> Result<(), String> {
 
 async fn save_fprint_identifier(emp_id: &u64, fprint_uuid: &str) -> Result<(), String> {
 
-  match dotenvy::dotenv() {
-      Ok(_) => (),
-      Err(e) => return Err(format!("Failed to load .env file: {}", e)),
-  }
-
-
-  let database_url = match env::var("DATABASE_URL") {
-      Ok(url) => url,
-      Err(_) => return Err("DATABASE_URL not set".to_string()),
+  let database_url = match db_url() {
+    Ok(url) => url,
+    Err(e) => return Err(format!("DATABASE_URL not set: {}", e)),
   };
 
   //connect to the database
@@ -318,6 +299,51 @@ async fn save_fprint_identifier(emp_id: &u64, fprint_uuid: &str) -> Result<(), S
 
   pool.close().await; //close connection to database
   Ok(row) //return from the function with no errors
+}
+
+fn db_url() -> Result<String, String> {
+    match dotenvy::dotenv() {
+        Ok(_) => (),
+        Err(e) => return Err(format!("Failed to load .env file: {}", e)),
+    }
+
+    let db_type = match env::var("DB_TYPE") {
+        Ok(db_type) => db_type,
+        Err(_) => return Err("DB_TYPE not set".to_string()),
+    };
+
+    let db_username = match env::var("DB_USERNAME") {
+        Ok(username) => username,
+        Err(_) => return Err("DB_USERNAME not set".to_string()),
+    };
+
+    let db_password = match env::var("DB_PASSWORD") {
+        Ok(password) => password,
+        Err(_) => return Err("DB_PASSWORD not set".to_string()),
+    };
+
+    let hostname = match env::var("HOSTNAME") {
+        Ok(name) => name,
+        Err(_) => return Err("HOSTNAME not set".to_string()),
+    };
+
+    let db_port = match env::var("DB_PORT") {
+        Ok(port) => port,
+        Err(_) => return Err("DB_PORT not set".to_string()),
+    };
+
+    let db_name = match env::var("DB_NAME") {
+        Ok(name) => name,
+        Err(_) => return Err("DB_NAME not set".to_string()),
+    };
+
+    let db_params = match env::var("DB_PARAMS") {
+        Ok(params) => params,
+        Err(_) => return Err("DB_PARAMS not set".to_string()),
+    };
+
+    let database_url = format!("{}://{}:{}@{}:{}/{}?{}",db_type,db_username,db_password,hostname,db_port,db_name,db_params);
+    Ok(database_url)
 }
 
 pub fn enroll_cb(

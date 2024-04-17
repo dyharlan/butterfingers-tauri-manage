@@ -25,7 +25,6 @@ prettytable = "0.10.0" #from butterfingersd-enroll
 glib = "0.19.0" #from butterfingersd-verify
 futures = "0.3.30"
 tokio = { version = "1.36.0", features = ["full"] }
-smol = "2.0.0"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
