@@ -21,7 +21,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 async function get_enroll_stages(id, empname) {
     let stages = await invoke('get_device_enroll_stages');
-    document.getElementById("proc-num").innerHTML = "Please press your finger " + stages + " times making sure it blinks each time.";
+    document.getElementById("proc-num").innerHTML = "Please press your finger " + stages + " times, making sure the fingerprint scanner blinks each time.";
     let response = await invoke('enroll_proc', { emp: id });
 
     const result = JSON.parse(response);

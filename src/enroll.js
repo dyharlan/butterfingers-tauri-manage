@@ -17,6 +17,10 @@ async function enumerate_unenrolled_employees() {
 	let results = await invoke('enumerate_unenrolled_employees');
 	let results_json = JSON.parse(results);
 	for (var i = 0; i < results_json.length; i++) { //loop for each element
+		/*
+		add logic that if the json array is empty, show that there are no unenrolled employees
+		(depends if you want to leave the list blank or to show that there are no unenrolled employees)
+		*/
 		var emp = results_json[i];
 		if (emp.hasOwnProperty("error")) {
 			console.log("error: " + emp['error']);
@@ -64,7 +68,7 @@ function addToList(id, fname, lname) {
 }
 
 async function selectEmp(id, fname, lname) {
-	const confirmed = await dialog.confirm("Are you sure enroll " + fname + " " + lname + "'s fingerprint?",
+	const confirmed = await dialog.confirm("Are you sure about enrolling " + fname + " " + lname + "'s fingerprint?",
 		{ title: "Confirm Selected Employee", okLabel: "Yes", });
 
 	if (confirmed) {

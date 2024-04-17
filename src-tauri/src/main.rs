@@ -48,6 +48,8 @@ async fn enumerate_unenrolled_employees() -> String {
     }).to_string(),
   };
 
+  println!("database_url: {}", database_url);
+
   let pool = match MySqlPool::connect(&database_url).await {
     Ok(pool) => pool,
     Err(e) => return json!({ 
@@ -65,6 +67,8 @@ async fn enumerate_unenrolled_employees() -> String {
   };
 
   pool.close().await;
+
+  //println!("Found {} unenrolled employees", result.len());
   
    if result.is_empty() {
       println!("No unenrolled employees found");
@@ -72,6 +76,8 @@ async fn enumerate_unenrolled_employees() -> String {
         "error" : "No unenrolled employees found"
       }).to_string();
    }
+
+   //println!("{:?}", result.get(0).unwrap());
 
    let mut unenrolled: String = String::from("");
 
