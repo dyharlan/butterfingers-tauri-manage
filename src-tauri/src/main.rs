@@ -140,10 +140,10 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
     let template = FpPrint::new(&fp_scanner);
 
     //generates a random uuid
-    let uuid = Uuid::new_v4();
+    //let uuid = Uuid::new_v4();
 
     //set the username of the template to the uuid generated
-    template.set_username(&uuid.to_string());
+    template.set_username(&emp.to_string());
 
     println!(
         "Username of the fingerprint: {}",
@@ -184,33 +184,33 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
 
     println!("Total enroll stages: {}", counter.lock().unwrap());
 
-    let home_dir = match dirs::home_dir() {
-        Some(home_dir) => home_dir,
-        None => {
-            return json!({
-              "responsecode" : "failure",
-              "body" : "Could not get home directory to store fingerprint",
-            })
-            .to_string()
-        }
-    };
+    // let home_dir = match dirs::home_dir() {
+    //     Some(home_dir) => home_dir,
+    //     None => {
+    //         return json!({
+    //           "responsecode" : "failure",
+    //           "body" : "Could not get home directory to store fingerprint",
+    //         })
+    //         .to_string()
+    //     }
+    // };
 
     //create a file to store the fingerprint in (at the root folder, which is securely located in the home directory)
-    let mut file = match OpenOptions::new()
-        .write(true)
-        .create(true)
-        //.truncate(true) //suggested by clippy to add truncate because file is opened with create, but truncate behavior is not defined
-        .open(home_dir.join(format!("print/fprint_{}", uuid)))
-    {
-        Ok(file) => file,
-        Err(_) => {
-            return json!({
-              "responsecode" : "failure",
-              "body" : "Could not create fingerprint file",
-            })
-            .to_string();
-        }
-    };
+    // let mut file = match OpenOptions::new()
+    //     .write(true)
+    //     .create(true)
+    //     //.truncate(true) //suggested by clippy to add truncate because file is opened with create, but truncate behavior is not defined
+    //     .open(home_dir.join(format!("print/fprint_{}", uuid)))
+    // {
+    //     Ok(file) => file,
+    //     Err(_) => {
+    //         return json!({
+    //           "responsecode" : "failure",
+    //           "body" : "Could not create fingerprint file",
+    //         })
+    //         .to_string();
+    //     }
+    // };
     //.expect("Creation of file failed");
 
     //serialize the fingerprint
@@ -226,19 +226,19 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
     };
 
     //fingerprint serialized for storage at the file location
-    match file.write_all(&new_fprint) {
-        Ok(_) => (),
-        Err(_) => {
-            return json!({
-              "responsecode" : "failure",
-              "body" : "Could not write fingerprint to file",
-            })
-            .to_string();
-        }
-    }
+    // match file.write_all(&new_fprint) {
+    //     Ok(_) => (),
+    //     Err(_) => {
+    //         return json!({
+    //           "responsecode" : "failure",
+    //           "body" : "Could not write fingerprint to file",
+    //         })
+    //         .to_string();
+    //     }
+    // }
 
     futures::executor::block_on(async {
-        match save_fprint_identifier(&emp_num, &uuid.to_string()).await {
+        match save_fprint_identifier(&emp_num, new_fprint).await {
             Ok(_insert) => {
                 println!("Fingerprint has been saved in the database");
                 json!({
@@ -287,7 +287,7 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
 //   Ok(())
 // }
 
-async fn save_fprint_identifier(emp_id: &u64, fprint_uuid: &str) -> Result<(), String> {
+async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), String> {
     let database_url = match db_url() {
         Ok(url) => url,
         Err(e) => return Err(format!("DATABASE_URL not set: {}", e)),
@@ -301,9 +301,9 @@ async fn save_fprint_identifier(emp_id: &u64, fprint_uuid: &str) -> Result<(), S
 
     //query the record_attendance_by_empid stored procedure (manual attendance)
     match sqlx::query!(
-        "CALL save_fprint_identifier(?,?)",
+        "CALL save_fprint(?,?)",
         emp_id,
-        fprint_uuid.to_string()
+        fprint
     )
     .execute(&pool)
     .await
