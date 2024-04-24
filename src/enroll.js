@@ -16,6 +16,7 @@ async function enumerate_unenrolled_employees() {
 	//await invoke('count');
 	let results = await invoke('enumerate_unenrolled_employees');
 	let results_json = JSON.parse(results);
+	console.log(results_json);
 	for (var i = 0; i < results_json.length; i++) { //loop for each element
 		/*
 		add logic that if the json array is empty, show that there are no unenrolled employees
@@ -24,6 +25,7 @@ async function enumerate_unenrolled_employees() {
 		var emp = results_json[i];
 		if (emp.hasOwnProperty("error")) {
 			console.log("error: " + emp['error']);
+			//hindi nag didisplay error sa page?
 			return;
 		}
 		if (emp.hasOwnProperty('emp_id')) {
