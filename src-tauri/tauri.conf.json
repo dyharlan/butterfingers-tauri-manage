@@ -5,8 +5,8 @@
     "withGlobalTauri": true
   },
   "package": {
-    "productName": "butterfingers-tauri-manage",
-    "version": "0.0.0"
+    "productName": "Fingerprint Manager",
+    "version": "1.0.1"
   },
   "tauri": {
     "allowlist": {
@@ -26,7 +26,7 @@
     },
     "windows": [
       {
-        "title": "butterfingers-tauri-manage",
+        "title": "Fingerprint Manager",
         "width": 800,
         "height": 600,
         "maximized": true
@@ -45,7 +45,14 @@
         "icons/128x128@2x.png",
         "icons/icon.icns",
         "icons/icon.ico"
-      ]
+      ],
+      "deb": {
+        "depends": [
+          "libfprint-2-2",
+          "libcairo-gobject2"
+        ],
+        "desktopTemplate": "./main.desktop"
+      }
     }
   }
 }

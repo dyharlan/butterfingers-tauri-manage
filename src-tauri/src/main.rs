@@ -4,9 +4,6 @@ use std::{
     env,
     sync::{Arc, Mutex},
 };
-
-// use serde::Deserialize;
-// use serde::Serialize;
 use serde_json::json;
 use tauri::State;
 
@@ -98,8 +95,8 @@ fn enroll_proc(emp: String, device: State<Note>) -> String { //function that is 
     };
 
     /*
-     * Get emp_id and check if it already is enrolled.
-     */
+    * Get emp_id and check if it already is enrolled.
+    */
 
     // let result = match futures::executor::block_on(async {
     //   query_count(emp_num).await
@@ -183,35 +180,6 @@ fn enroll_proc(emp: String, device: State<Note>) -> String { //function that is 
 
     println!("Total enroll stages: {}", counter.lock().unwrap());
 
-    // let home_dir = match dirs::home_dir() {
-    //     Some(home_dir) => home_dir,
-    //     None => {
-    //         return json!({
-    //           "responsecode" : "failure",
-    //           "body" : "Could not get home directory to store fingerprint",
-    //         })
-    //         .to_string()
-    //     }
-    // };
-
-    //create a file to store the fingerprint in (at the root folder, which is securely located in the home directory)
-    // let mut file = match OpenOptions::new()
-    //     .write(true)
-    //     .create(true)
-    //     //.truncate(true) //suggested by clippy to add truncate because file is opened with create, but truncate behavior is not defined
-    //     .open(home_dir.join(format!("print/fprint_{}", uuid)))
-    // {
-    //     Ok(file) => file,
-    //     Err(_) => {
-    //         return json!({
-    //           "responsecode" : "failure",
-    //           "body" : "Could not create fingerprint file",
-    //         })
-    //         .to_string();
-    //     }
-    // };
-    //.expect("Creation of file failed");
-
     //serialize the fingerprint
     let new_fprint = match new_fprint.serialize() {
         Ok(new_fprint) => new_fprint.to_owned(),
@@ -224,20 +192,8 @@ fn enroll_proc(emp: String, device: State<Note>) -> String { //function that is 
         }
     };
 
-    //fingerprint serialized for storage at the file location
-    // match file.write_all(&new_fprint) {
-    //     Ok(_) => (),
-    //     Err(_) => {
-    //         return json!({
-    //           "responsecode" : "failure",
-    //           "body" : "Could not write fingerprint to file",
-    //         })
-    //         .to_string();
-    //     }
-    // }
-
     futures::executor::block_on(async {
-        match save_fprint_identifier(&emp_num, new_fprint).await {
+        match save_fprint_to_db(&emp_num, new_fprint).await {
             Ok(_insert) => {
                 println!("Fingerprint has been saved in the database");
                 json!({
@@ -323,45 +279,52 @@ async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), Str
 }
 
 fn db_url() -> Result<String, String> {
-    match dotenvy::dotenv() {
-        Ok(_) => (),
-        Err(e) => return Err(format!("Failed to load .env file: {}", e)),
-    }
+    // match dotenvy::dotenv() {
+    //     Ok(_) => (),
+    //     Err(e) => return Err(format!("Failed to load .env file: {}", e)),
+    // }
 
-    let db_type = match env::var("DB_TYPE") {
-        Ok(db_type) => db_type,
-        Err(_) => return Err("DB_TYPE not set".to_string()),
-    };
+    let db_type = dotenvy_macro::dotenv!("DB_TYPE");
+    // {
+    //     Ok(db_type) => db_type,
+    //     Err(_) => return Err("DB_TYPE not set".to_string()),
+    // };
 
-    let db_username = match env::var("DB_USERNAME") {
-        Ok(username) => username,
-        Err(_) => return Err("DB_USERNAME not set".to_string()),
-    };
+    let db_username = dotenvy_macro::dotenv!("DB_USERNAME");
+    // {
+    //     Ok(username) => username,
+    //     Err(_) => return Err("DB_USERNAME not set".to_string()),
+    // };
 
-    let db_password = match env::var("DB_PASSWORD") {
-        Ok(password) => password,
-        Err(_) => return Err("DB_PASSWORD not set".to_string()),
-    };
+    let db_password = dotenvy_macro::dotenv!("DB_PASSWORD");
+    //  {
+    //     Ok(password) => password,
+    //     Err(_) => return Err("DB_PASSWORD not set".to_string()),
+    // };
 
-    let hostname = match env::var("HOSTNAME") {
-        Ok(name) => name,
-        Err(_) => return Err("HOSTNAME not set".to_string()),
-    };
+    let hostname = dotenvy_macro::dotenv!("HOSTNAME");
+    // {
+    //     Ok(name) => name,
+    //     Err(_) => return Err("HOSTNAME not set".to_string()),
+    // };
 
-    let db_port = match env::var("DB_PORT") {
-        Ok(port) => port,
-        Err(_) => return Err("DB_PORT not set".to_string()),
-    };
+    let db_port = dotenvy_macro::dotenv!("DB_PORT");
+    // {
+    //     Ok(port) => port,
+    //     Err(_) => return Err("DB_PORT not set".to_string()),
+    // };
 
-    let db_name = match env::var("DB_NAME") {
-        Ok(name) => name,
-        Err(_) => return Err("DB_NAME not set".to_string()),
-    };
+    let db_name = dotenvy_macro::dotenv!("DB_NAME");
+    // {
+    //     Ok(name) => name,
+    //     Err(_) => return Err("DB_NAME not set".to_string()),
+    // };
 
-    let db_params = match env::var("DB_PARAMS") {
-        Ok(params) => params,
-        Err(_) => return Err("DB_PARAMS not set".to_string()),
-    };
+    let db_params = dotenvy_macro::dotenv!("DB_PARAMS"); 
+    // {
+    //     Ok(params) => params,
+    //     Err(_) => return Err("DB_PARAMS not set".to_string()),
+    // };
 
     let database_url = format!(
         "{}://{}:{}@{}:{}/{}?{}",
@@ -369,6 +332,7 @@ fn db_url() -> Result<String, String> {
     );
     Ok(database_url)
 }
+
 
 pub fn enroll_cb(
     _device: &FpDevice,
@@ -390,6 +354,7 @@ struct Note(Mutex<FpDevice>);
 
 #[tokio::main]
 async fn main() {
+    env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
     tauri::Builder::default()
         .setup(|_app| Ok(()))
         .manage(Note(Mutex::new(FpContext::new().devices().remove(0))))
