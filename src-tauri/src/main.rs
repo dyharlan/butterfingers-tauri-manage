@@ -2,29 +2,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::{
     env,
-    fs::OpenOptions,
-    io::Write,
     sync::{Arc, Mutex},
 };
 
-use serde::Deserialize;
-use serde::Serialize;
+// use serde::Deserialize;
+// use serde::Serialize;
 use serde_json::json;
 use tauri::State;
 
 use libfprint_rs::{FpContext, FpDevice, FpPrint};
 
 use sqlx::{MySqlPool, Row};
-use uuid::Uuid;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 
-#[derive(Serialize, Deserialize)]
-struct Employee {
-    emp_id: u64,
-    fname: String,
-    lname: String,
-}
+// #[derive(Serialize, Deserialize)]
+// struct Employee {
+//     emp_id: u64,
+//     fname: String,
+//     lname: String,
+// }
+
 #[tauri::command]
 async fn enumerate_unenrolled_employees() -> String {
     let database_url = match db_url() {
@@ -87,7 +85,7 @@ async fn enumerate_unenrolled_employees() -> String {
 }
 
 #[tauri::command]
-fn enroll_proc(emp: String, device: State<Note>) -> String {
+fn enroll_proc(emp: String, device: State<Note>) -> String { //function that is called when scanning a fingerprint for enrollment
     let emp_num = match emp.trim().parse::<u64>() {
         Ok(num) => num,
         Err(_) => {
@@ -142,7 +140,8 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
     //generates a random uuid
     //let uuid = Uuid::new_v4();
 
-    //set the username of the template to the uuid generated
+    //OUTDATED: set the username of the template to the uuid generated
+    //NEW: set the username of the template to the employee ID to which the fingerprint belongs to
     template.set_username(&emp.to_string());
 
     println!(
@@ -152,7 +151,7 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
             .expect("Username should be included here")
     );
 
-    let counter = Arc::new(Mutex::new(0));
+    let counter = Arc::new(Mutex::new(0)); //a counter for the current scanning phase of the enrollment process
 
     let new_fprint = match fp_scanner.enroll_sync(template, None, Some(enroll_cb), None) {
         Ok(new_fprint) => new_fprint,
@@ -287,7 +286,7 @@ fn enroll_proc(emp: String, device: State<Note>) -> String {
 //   Ok(())
 // }
 
-async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), String> {
+async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), String> { //save a fingerprint in the database to be associated with an employee id
     let database_url = match db_url() {
         Ok(url) => url,
         Err(e) => return Err(format!("DATABASE_URL not set: {}", e)),
@@ -300,27 +299,26 @@ async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), Str
     };
 
     //query the record_attendance_by_empid stored procedure (manual attendance)
-    match sqlx::query!(
-        "CALL save_fprint(?,?)",
-        emp_id,
-        fprint
-    )
-    .execute(&pool)
-    .await
+    match sqlx::query!("CALL save_fprint(?,?)", emp_id, fprint)
+        .execute(&pool)
+        .await
     {
         Ok(row) => {
-            pool.close().await;
+            pool.close().await; //close connection to database
             match row.rows_affected() {
                 //check how many rows were affected by the stored procedure that was previously queried
                 0 => println!("No rows affected"),
                 _ => println!("Rows affected: {}", row.rows_affected()),
             }
         }
-        Err(e) => return Err(e.to_string()),
+        Err(e) => {
+            pool.close().await; //close connection to database before returning error
+            return Err(e.to_string());
+        }
     };
     //.expect("Could not retrieve latest attendance record");
 
-    pool.close().await; //close connection to database
+    //pool.close().await;
     Ok(()) //return from the function with no errors
 }
 
