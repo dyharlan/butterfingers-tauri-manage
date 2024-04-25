@@ -242,7 +242,7 @@ fn enroll_proc(emp: String, device: State<Note>) -> String { //function that is 
 //   Ok(())
 // }
 
-async fn save_fprint_identifier(emp_id: &u64, fprint: Vec<u8>) -> Result<(), String> { //save a fingerprint in the database to be associated with an employee id
+async fn save_fprint_to_db(emp_id: &u64, fprint: Vec<u8>) -> Result<(), String> { //save a fingerprint in the database to be associated with an employee id
     let database_url = match db_url() {
         Ok(url) => url,
         Err(e) => return Err(format!("DATABASE_URL not set: {}", e)),
